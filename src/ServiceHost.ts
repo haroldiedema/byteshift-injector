@@ -45,10 +45,10 @@ class ServiceHostImpl
      * @param {Function} constructor
      * @returns {T}
      */
-    public get<T>(constructor: Function): T
+    public get<T>(constructor: new (...args: any[]) => T): T
     {
         if (!this.has(constructor)) {
-            console.error('The requested service does not exist:', constructor);
+            console.error('The requested service does not exist:', constructor.name);
             throw new Error('Service does not exist.');
         }
 

@@ -20,7 +20,7 @@ declare class ServiceHostImpl {
      * @param {Function} constructor
      * @returns {T}
      */
-    get<T>(constructor: Function): T;
+    get<T>(constructor: new (...args: any[]) => T): T;
 }
 export declare const ServiceHost: ServiceHostImpl;
 export {};

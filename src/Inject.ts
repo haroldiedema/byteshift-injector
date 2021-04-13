@@ -36,10 +36,6 @@ export function Inject(constructor: any, propertyKey: string)
 {
     const type = (Reflect as any).getMetadata('design:type', constructor, propertyKey);
 
-    if (! ServiceHost.has(type)) {
-        throw new Error(`The service requested by property "${propertyKey}" of "${constructor.name}" does not exist.`);
-    }
-
     let _instance: any;
 
     Object.defineProperty(constructor, propertyKey, {
@@ -47,6 +43,10 @@ export function Inject(constructor: any, propertyKey: string)
         enumerable: false,
         get: () => {
             if (! _instance) {
+                if (! ServiceHost.has(type)) {
+                    throw new Error(`The service requested by property "${propertyKey}" of "${constructor.name}" does not exist.`);
+                }
+
                 _instance = ServiceHost.get(type);
             }
 
