@@ -11,7 +11,7 @@ const _G: any = typeof window !== 'undefined' ? window : global;
 const _S      = Symbol('byteshift-injector');
 
 if (typeof _G[_S] === 'undefined') {
-    _G[_S] = new Map();
+    _G[_S] = {d: new Map(), i: new Map()};
 }
 
 class ServiceHostImpl
@@ -25,7 +25,7 @@ class ServiceHostImpl
      */
     public register(constructor: Function)
     {
-        _G[_S].set(constructor, new (constructor as any)());
+        _G[_S].d.set(constructor, new (constructor as any)());
     }
 
     /**
@@ -36,7 +36,7 @@ class ServiceHostImpl
      */
     public has(constructor: Function)
     {
-        return _G[_S].has(constructor);
+        return _G[_S].d.has(constructor);
     }
 
     /**
@@ -52,7 +52,13 @@ class ServiceHostImpl
             throw new Error('Service does not exist.');
         }
 
-        return _G[_S].get(constructor);
+        if (_G[_S].i.has(constructor)) {
+            return _G[_S].i;
+        }
+
+        _G[_S].i.set(constructor, new constructor());
+
+        return _G[_S].i.get(constructor);
     }
 }
 
