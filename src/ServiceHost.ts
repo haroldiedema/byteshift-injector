@@ -25,7 +25,7 @@ class ServiceHostImpl
      */
     public register(constructor: Function)
     {
-        _G[_S].d.set(constructor, new (constructor as any)());
+        _G[_S].d.set(constructor, constructor);
     }
 
     /**
@@ -53,7 +53,7 @@ class ServiceHostImpl
         }
 
         if (_G[_S].i.has(constructor)) {
-            return _G[_S].i;
+            return _G[_S].i.get(constructor);
         }
 
         _G[_S].i.set(constructor, new constructor());
