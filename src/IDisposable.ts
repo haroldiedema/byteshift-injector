@@ -6,10 +6,10 @@
  */
 'use strict';
 
-export {ServiceContainer} from './ServiceContainer';
-
-export * from './Types';
-export * from './Service';
-export * from './Context';
-export * from './IAsyncService';
-export * from './IDisposable';
+export interface IDisposable
+{
+    /**
+     * Invoked when the context of a service container is disposed of.
+     */
+    dispose(): void;
+}

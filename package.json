@@ -1,22 +1,27 @@
 {
   "name": "@byteshift/injector",
-  "version": "1.0.3",
+  "version": "2.0.0",
   "description": "A tiny dependency injection library",
   "author": "Harold Iedema <harold@iedema.me>",
   "devDependencies": {
     "@rollup/plugin-alias": "^3.1.1",
     "@rollup/plugin-commonjs": "^16.0.0",
     "@rollup/plugin-node-resolve": "^10.0.0",
+    "@types/jest": "^28.1.6",
+    "istanbul-badges-readme": "^1.8.2",
+    "jest": "^28.1.3",
     "rollup": "^2.26.0",
     "rollup-plugin-serve": "^1.0.3",
     "rollup-plugin-terser": "^7.0.2",
     "rollup-plugin-typescript2": "^0.27.2",
+    "ts-jest": "^28.0.7",
     "tslib": "^2.0.1",
     "typescript": "^4.0.5"
   },
   "scripts": {
     "build": "rollup -c",
-    "watch": "rollup -c --watch"
+    "watch": "rollup -c --watch",
+    "test": "jest --coverage && istanbul-badges-readme"
   },
   "types": "dist/index.d.ts",
   "dependencies": {
@@ -27,15 +32,18 @@
     "byteshift",
     "dependency-injection",
     "container",
-    "injection"
+    "injection",
+    "context-isolation",
+    "context",
+    "isolation"
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/haroldiedema/byteshift-elements/issues"
+    "url": "https://github.com/haroldiedema/byteshift-injector/issues"
   },
-  "homepage": "https://github.com/haroldiedema/byteshift-elements/wiki",
+  "homepage": "https://github.com/haroldiedema/byteshift-injector",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/haroldiedema/byteshift-elements.git"
+    "url": "git+https://github.com/haroldiedema/byteshift-injector.git"
   }
 }

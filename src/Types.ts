@@ -6,10 +6,12 @@
  */
 'use strict';
 
-export {ServiceContainer} from './ServiceContainer';
+export const DEFAULT_CONTEXT_ID = '__default_context__';
 
-export * from './Types';
-export * from './Service';
-export * from './Context';
-export * from './IAsyncService';
-export * from './IDisposable';
+export type AnyConstructor = new (...args: any[]) => any;
+export type FactoryOptions = {dependencies: any[], contextId: any};
+export type ServiceOptions = {
+    isolated: boolean,
+    autoload: boolean | ((contextId: any) => boolean),
+    factory?: (constructor: AnyConstructor, options: FactoryOptions) => Promise<InstanceType<AnyConstructor>>,
+};
