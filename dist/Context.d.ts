@@ -11,9 +11,6 @@ export declare class Context {
     constructor(definitions: Map<AnyConstructor, ServiceOptions>, contexts: Map<any, Context>, contextId: any, onDisposeCallback: () => void);
     /**
      * Returns a service instance by the given ID.
-     *
-     * @param {T} id
-     * @returns {InstanceType<T>}
      */
     get<T extends new (...args: any[]) => InstanceType<T>>(id: T): Promise<InstanceType<T>>;
     /**
@@ -52,6 +49,7 @@ export declare class Context {
      * @private
      */
     private resolveArgumentsOf;
+    private resolveArgument;
     /**
      * Returns the appropriate context for the given constructor.
      *

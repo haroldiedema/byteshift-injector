@@ -9,7 +9,6 @@
 import {IAsyncService, Service, ServiceContainer} from '../src';
 
 describe('Isolated contexts', () => {
-
     it('Expects isolated services to live in their own scope', async () => {
         @Service({autoload: true})
         class SharedService
@@ -22,18 +21,37 @@ describe('Isolated contexts', () => {
             }
         }
 
+        @Service()
+        class SharedService2
+        {
+            public foo: number = 42;
+        }
+
         @Service({isolated: true})
         class IsolatedService
         {
             public result: number = 0;
 
-            constructor(public readonly shared: SharedService)
+            constructor(
+                public readonly shared: SharedService,
+                public readonly shared2: SharedService2,
+            )
             {
             }
 
             public add(a: number, b: number)
             {
                 this.result = this.shared.add(a, b);
+            }
+
+            public getSharedResult(): number
+            {
+                return this.shared2.foo;
+            }
+
+            public setSharedResult(num: number): void
+            {
+                this.shared2.foo = num;
             }
         }
 
@@ -49,6 +67,14 @@ describe('Isolated contexts', () => {
 
         expect((await ctx1.get(IsolatedService)).result).toBe(12);
         expect((await ctx2.get(IsolatedService)).result).toBe(14);
+
+        expect((await ctx1.get(IsolatedService)).getSharedResult()).toBe(42);
+        expect((await ctx2.get(IsolatedService)).getSharedResult()).toBe(42);
+
+        (await ctx1.get(IsolatedService)).setSharedResult(8);
+
+        expect((await ctx1.get(IsolatedService)).getSharedResult()).toBe(8);
+        expect((await ctx2.get(IsolatedService)).getSharedResult()).toBe(8);
 
         (await ctx1.get(SharedService)).sharedNum = 0;
 
@@ -81,6 +107,8 @@ describe('Isolated contexts', () => {
 
         await ServiceContainer.of('Some Context').compile();
         expect((await ServiceContainer.of('Some Context').get(AsyncOne)).detectedCtx).toStrictEqual('Some Context');
+
+        ServiceContainer.reset();
     });
 
     it('Expects an error if a non-isolated service depends on an isolated one', async () => {
@@ -96,7 +124,6 @@ describe('Isolated contexts', () => {
             }
         }
 
-        await ServiceContainer.compile();
-        await expect(() => ServiceContainer.get(Shared)).rejects.toThrow();
+        await expect(() => ServiceContainer.compile()).rejects.toThrow();
     });
 });

@@ -92,7 +92,7 @@ class Container
 // Service definitions (configuration) are registered globally.
 /* istanbul ignore next */
 const _G: any = typeof window !== 'undefined' ? window : global;
-const _S      = Symbol('byteshift-injector');
+const _S      = '__byteshift-injector_2__';
 
 if (typeof _G[_S] === 'undefined') {
     _G[_S] = new Container();

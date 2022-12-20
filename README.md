@@ -23,6 +23,17 @@ Install using npm or yarn:
 $ npm i @byteshift/injector --save
 ```
 
+Enable decorator support in your typescript configuration (tsconfig.json):
+
+```json
+{
+    "compilerOptions": {
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true
+    }
+}
+```
+
 ### Registering a service
 
 A class is registered as a service using the `@Service()` decorator. A decorated
@@ -54,6 +65,24 @@ promise to allow asynchronous service compilation for classes that implement
 either `IAsyncService`, or a method called `initialize` that returns a
 `Promise<void>`. See below for more information.
 
+### Injecting services
+
+Use constructor arguments to inject instances of other classes. This makes your
+service classes easy to unit-test, providing you keep them small and compliant
+to SOLID design principles.
+
+```ts
+import {Service} from './Service';
+
+@Service()
+class UserRepository
+{
+    constructor(private readonly db: DatabaseConnection)
+    {
+    }
+}
+```
+
 ## Context Isolation
 
 Isolated contexts are separate containers that can be created on-the-fly for a
@@ -68,6 +97,9 @@ container is being created, using the `ServiceContainer.of()` method.
 Services which have `isolated` set to false (default) will have their existing
 instances automatically available in the newly created context. This allows you
 to have a mix of shared and isolated services for any specific context.
+
+Please note that an isolated service may depend on a non-isolated (shared)
+service, but a shared service CAN NOT depend on an isolated service.
 
 ![isolation](docs/di-isolation.png)
 
@@ -188,4 +220,44 @@ Going with the example above, context creation could look like this:
 // Invokes fetch on https://some.site?id=12345 and passes the response object to
 // the constructor of MyAwesomeService before returning it.
 const instance = await ServiceContainer.of(12345).get(MyAwesomeService);
+```
+
+### Injecting collections of services
+
+Sometimes there is a use-case for injecting a collection of multiple services
+that share a single interface. Unfortunately there is no autoloader system
+available in javascript the same sense as PHP and interfaces are lost during
+compilation.
+
+The solution is that you can create an array of services and inject those using
+the `@Collection` decorator.
+
+Imagine that you have 3 services: `Thing1`, `Thing2` and `Thing3` that all
+implement the `IThing` interface. It is considered good practice to create an
+exported _const_ that holds an array of these types like so: 
+
+```ts
+// ThingCollection.ts
+export const ThingCollection = [Thing1, Thing2, Thing3];
+```
+
+The reason for the abstracted const is to be able to inject the same collection
+in different services across your application. Nothing stops you from just
+passing the bare array to the `@Collection` decorator if you know for sure that
+the collection isn't used anywhere else.
+
+In your service, simply inject the collection using the `@Collection` decorator.
+
+```ts
+// MyService.ts
+
+export class MyService
+{
+    constructor(
+        @Collection(ThingCollection) private readonly things: IThing[]
+    )
+    {
+        // "things" is now an array of instances of Thing1, Thing2 and Thing3.
+    }
+}
 ```

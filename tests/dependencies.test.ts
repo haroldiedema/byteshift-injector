@@ -7,16 +7,48 @@
 'use strict';
 
 import {Service, ServiceContainer} from '../src';
+import {Collection}                from '../src/Collection';
 
 describe('Basic dependency injection', () => {
 
     it('Expects dependencies to be resolved in order', async () => {
         const loadOrder: number[] = [];
 
-        @Service() class Svc1 { constructor() { loadOrder.push(1); } }
-        @Service() class Svc2 { constructor(s1: Svc1) { loadOrder.push(2); } }
-        @Service() class Svc3 { constructor(s1: Svc1, s2: Svc2) { loadOrder.push(3); } }
-        @Service() class Svc4 { constructor(s3: Svc3) { loadOrder.push(4); } }
+        @Service()
+        class Svc1
+        {
+            constructor()
+            {
+                loadOrder.push(1);
+            }
+        }
+
+        @Service()
+        class Svc2
+        {
+            constructor(s1: Svc1)
+            {
+                loadOrder.push(2);
+            }
+        }
+
+        @Service()
+        class Svc3
+        {
+            constructor(s1: Svc1, s2: Svc2)
+            {
+                loadOrder.push(3);
+            }
+        }
+
+        @Service()
+        class Svc4
+        {
+            constructor(s3: Svc3)
+            {
+                loadOrder.push(4);
+            }
+        }
 
         await ServiceContainer.compile();
 
@@ -29,10 +61,41 @@ describe('Basic dependency injection', () => {
     it('Expects dependencies to be resolved in order when auto-loading', async () => {
         const loadOrder: number[] = [];
 
-        @Service() class Svc1 { constructor() { loadOrder.push(1); } }
-        @Service() class Svc2 { constructor(s1: Svc1) { loadOrder.push(2); } }
-        @Service() class Svc3 { constructor(s1: Svc1, s2: Svc2) { loadOrder.push(3); } }
-        @Service({autoload: true}) class Svc4 { constructor(s3: Svc3) { loadOrder.push(4); } }
+        @Service()
+        class Svc1
+        {
+            constructor()
+            {
+                loadOrder.push(1);
+            }
+        }
+
+        @Service()
+        class Svc2
+        {
+            constructor(s1: Svc1)
+            {
+                loadOrder.push(2);
+            }
+        }
+
+        @Service()
+        class Svc3
+        {
+            constructor(s1: Svc1, s2: Svc2)
+            {
+                loadOrder.push(3);
+            }
+        }
+
+        @Service({autoload: true})
+        class Svc4
+        {
+            constructor(s3: Svc3)
+            {
+                loadOrder.push(4);
+            }
+        }
 
         // Due to an auto-loading service, service instantiation now happens in
         // the compilation phase...
@@ -49,10 +112,22 @@ describe('Basic dependency injection', () => {
 
     it('Expects conditional auto-loading to work properly.', async () => {
         @Service({isolated: true, autoload: (ctx) => ctx === 'ctx1'})
-        class Svc1 { constructor() { loadOrder.push(1); } }
+        class Svc1
+        {
+            constructor()
+            {
+                loadOrder.push(1);
+            }
+        }
 
         @Service({isolated: true, autoload: true})
-        class Svc2 { constructor() { loadOrder.push(2); } }
+        class Svc2
+        {
+            constructor()
+            {
+                loadOrder.push(2);
+            }
+        }
 
         let loadOrder: number[] = [];
         await ServiceContainer.compile();
@@ -69,10 +144,41 @@ describe('Basic dependency injection', () => {
     it('Expects existing dependencies to be resolved in order when already loaded.', async () => {
         const loadOrder: number[] = [];
 
-        @Service() class Svc1 { constructor() { loadOrder.push(1); } }
-        @Service() class Svc2 { constructor(s1: Svc1) { loadOrder.push(2); } }
-        @Service() class Svc3 { constructor(s1: Svc1, s2: Svc2) { loadOrder.push(3); } }
-        @Service({autoload: true}) class Svc4 { constructor(s1: Svc1, s2: Svc2, s3: Svc3) { loadOrder.push(4); } }
+        @Service()
+        class Svc1
+        {
+            constructor()
+            {
+                loadOrder.push(1);
+            }
+        }
+
+        @Service()
+        class Svc2
+        {
+            constructor(s1: Svc1)
+            {
+                loadOrder.push(2);
+            }
+        }
+
+        @Service()
+        class Svc3
+        {
+            constructor(s1: Svc1, s2: Svc2)
+            {
+                loadOrder.push(3);
+            }
+        }
+
+        @Service({autoload: true})
+        class Svc4
+        {
+            constructor(s1: Svc1, s2: Svc2, s3: Svc3)
+            {
+                loadOrder.push(4);
+            }
+        }
 
         await ServiceContainer.compile();
         expect(loadOrder).toStrictEqual([1, 2, 3, 4]);
@@ -99,5 +205,56 @@ describe('Basic dependency injection', () => {
 
         await ServiceContainer.compile();
         await expect(() => ServiceContainer.get(Svc1)).rejects.toThrow();
+    });
+
+    it('Should be able to inject a collection of services.', async () => {
+        interface Thing {svc?: any;}
+
+        @Service()
+        class SomeServiceUsedByThing2
+        {
+            constructor()
+            {
+            }
+        }
+
+        @Service()
+        class Thing1 implements Thing
+        {
+        }
+
+        @Service({
+            factory: (constructor, options) => {
+                return new constructor(...options.dependencies);
+            },
+        })
+        class Thing2 implements Thing
+        {
+            constructor(public readonly svc: SomeServiceUsedByThing2)
+            {
+            }
+        }
+
+        @Service()
+        class Thing3 implements Thing {}
+
+        // Shorthand for 'things'.
+        const Things = [Thing1, Thing2, Thing3];
+
+        @Service()
+        class InjectedMany
+        {
+            constructor(@Collection(Things) public readonly things: Thing[])
+            {
+            }
+        }
+
+        await ServiceContainer.compile();
+        const svc = await ServiceContainer.get(InjectedMany);
+
+        console.log(svc.things);
+
+        expect(svc.things.length).toBe(3);
+        expect(svc.things[1].svc).toBeInstanceOf(SomeServiceUsedByThing2);
     });
 });

@@ -7,6 +7,7 @@
 'use strict';
 
 import 'reflect-metadata';
+import {CollectionMetadataKey}                              from './Collection';
 import {AnyConstructor, DEFAULT_CONTEXT_ID, ServiceOptions} from './Types';
 
 export class Context
@@ -27,9 +28,6 @@ export class Context
 
     /**
      * Returns a service instance by the given ID.
-     *
-     * @param {T} id
-     * @returns {InstanceType<T>}
      */
     public async get<T extends new (...args: any[]) => InstanceType<T>>(id: T): Promise<InstanceType<T>>
     {
@@ -100,7 +98,7 @@ export class Context
      */
     public dispose(): void
     {
-        if (this.contextId === null) {
+        if (this.contextId === null || this.contextId === DEFAULT_CONTEXT_ID) {
             throw new Error('Root context cannot be disposed of.');
         }
 
@@ -147,11 +145,11 @@ export class Context
     {
         const options = this.definitions.get(constructor);
         const context = this.getContextOf(constructor);
-        const args    = this.resolveArgumentsOf(constructor);
+        const args    = await this.resolveArgumentsOf(constructor);
 
         const instance = options.factory
             ? await options.factory(constructor, {dependencies: args, contextId: this.contextId})
-            : new constructor(...this.resolveArgumentsOf(constructor));
+            : new constructor(...(await this.resolveArgumentsOf(constructor)));
 
         context.services.set(constructor, instance);
 
@@ -167,10 +165,11 @@ export class Context
      * @returns {any[]}
      * @private
      */
-    private resolveArgumentsOf(constructor: AnyConstructor, methodName?: string): any[]
+    private async resolveArgumentsOf(constructor: AnyConstructor, methodName?: string): Promise<any[]>
     {
         const args: any[]             = [];
         const params: any[]           = Reflect.getMetadata('design:paramtypes', constructor, methodName) ?? [];
+        const collections: any        = Reflect.getMetadata(CollectionMetadataKey, constructor) ?? {};
         const options: ServiceOptions = this.definitions.get(constructor);
 
         let paramIndex: number = 0;
@@ -183,25 +182,41 @@ export class Context
                 continue;
             }
 
-            if (!this.definitions.has(param)) {
-                throw new Error(`Argument #${paramIndex} of the constructor of class "${constructor.name}" is not a registered service.`);
-            }
+            if (Array.isArray(collections[paramIndex - 1])) {
+                const deps: any[] = [];
 
-            if (!options.isolated && this.definitions.get(param).isolated) {
-                throw new Error(`A non-isolated service cannot depend on an isolated service.`);
-            }
+                for (const param of collections[paramIndex - 1]) {
+                    await this.resolveArgument(constructor, options, param, paramIndex, deps);
+                }
 
-            const paramContext = this.getContextOf(param);
-
-            if (paramContext.services.has(param)) {
-                args.push(paramContext.services.get(param));
+                args.push(deps);
                 continue;
             }
 
-            args.push(paramContext.compileService(param));
+            await this.resolveArgument(constructor, options, param, paramIndex, args);
         }
 
         return args;
+    }
+
+    private async resolveArgument(constructor: AnyConstructor, options: ServiceOptions, param: AnyConstructor, paramIndex: number, args: any[]): Promise<void>
+    {
+        if (!this.definitions.has(param)) {
+            throw new Error(`Argument #${paramIndex + 1} of the constructor of class "${constructor.name}" is not a registered service.`);
+        }
+
+        if (!options.isolated && this.definitions.get(param).isolated) {
+            throw new Error(`A non-isolated service (${constructor.name}) cannot depend on an isolated service (${param.name}).`);
+        }
+
+        const paramContext = this.getContextOf(param);
+
+        if (paramContext.services.has(param)) {
+            args.push(paramContext.services.get(param));
+            return;
+        }
+
+        args.push(await paramContext.compileService(param));
     }
 
     /**
