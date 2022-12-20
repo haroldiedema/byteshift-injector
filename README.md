@@ -250,7 +250,7 @@ In your service, simply inject the collection using the `@Collection` decorator.
 
 ```ts
 // MyService.ts
-
+@Service()
 export class MyService
 {
     constructor(
